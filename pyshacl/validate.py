@@ -7,6 +7,7 @@ from functools import wraps
 from os import path
 from sys import stderr
 from typing import Dict, List, Optional, Set, Tuple, Union
+from time import process_time
 
 import owlrl
 import rdflib
@@ -387,7 +388,11 @@ def validate(
                 'logger': log,
             },
         )
+        tic = process_time()
         conforms, report_graph, report_text = validator.run()
+        toc = process_time()
+        print(toc - tic)
+        print("^^^^ validation time")
     except ValidationFailure as e:
         conforms = False
         report_graph = e
