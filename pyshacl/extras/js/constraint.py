@@ -19,8 +19,8 @@ if typing.TYPE_CHECKING:
     from pyshacl.shapes_graph import ShapesGraph
 
 
-SH_JSConstraint = SH.term('JSConstraint')
-SH_JSConstraintComponent = SH.term('JSConstraintComponent')
+SH_JSConstraint = SH.JSConstraint
+SH_JSConstraintComponent = SH.JSConstraintComponent
 
 
 class JSConstraintImpl(JSExecutable):
@@ -33,7 +33,8 @@ class JSConstraintImpl(JSExecutable):
         for m in msgs_iter:
             if not isinstance(m, Literal):
                 raise ConstraintLoadError(
-                    "JSConstraint sh:message must be a RDF Literal.", "https://www.w3.org/TR/shacl-js/#js-constraints",
+                    "JSConstraint sh:message must be a RDF Literal.",
+                    "https://www.w3.org/TR/shacl-js/#js-constraints",
                 )
             if not isinstance(m.value, str):
                 raise ConstraintLoadError(
@@ -58,6 +59,9 @@ class JSConstraintImpl(JSExecutable):
 
 
 class JSConstraint(ConstraintComponent):
+
+    shacl_constraint_component = SH_JSConstraint
+
     def __init__(self, shape: 'Shape'):
         super(JSConstraint, self).__init__(shape)
         js_decls = list(self.shape.objects(SH_js))
@@ -75,10 +79,6 @@ class JSConstraint(ConstraintComponent):
     @classmethod
     def constraint_name(cls):
         return "JSConstraint"
-
-    @classmethod
-    def shacl_constraint_class(cls):
-        return SH_JSConstraint
 
     def make_generic_messages(self, datagraph: GraphLike, focus_node, value_node) -> List[Literal]:
         return [Literal("Javascript Function generated constraint validation reports.")]

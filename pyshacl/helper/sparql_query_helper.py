@@ -4,13 +4,15 @@ https://www.w3.org/TR/shacl/#sparql-constraints
 """
 import re
 
-from warnings import warn
-
 import rdflib
 
-from rdflib import RDF, XSD
+from rdflib import XSD
 
 from ..consts import (
+    OWL_PFX,
+    RDF,
+    RDF_PFX,
+    RDFS_PFX,
     SH,
     OWL_Ontology,
     RDF_type,
@@ -26,7 +28,7 @@ from ..consts import (
 from ..errors import ConstraintLoadError, ReportableRuntimeError, ValidationFailure
 
 
-SH_declare = SH.term('declare')
+SH_declare = SH.declare
 invalid_parameter_names = {'this', 'shapesGraph', 'currentShape', 'path', 'PATH', 'value'}
 
 
@@ -55,9 +57,9 @@ class SPARQLQueryHelper(object):
         self.param_bind_map = {}
         self.bound_messages = set()
         self.prefixes = {
-            'rdf': rdflib.namespace.RDF.uri,
-            'rdfs': rdflib.namespace.RDFS.uri,
-            'owl': str(rdflib.namespace.OWL),
+            'rdf': RDF_PFX,
+            'rdfs': RDFS_PFX,
+            'owl': OWL_PFX,
         }
         if shape:
             self.shape = shape
@@ -173,14 +175,13 @@ class SPARQLQueryHelper(object):
                     if prefix == "sh" and isinstance(namespace.value, str):
                         # Known bug in shacl.ttl https://github.com/w3c/data-shapes/issues/125
                         pass
-                    elif namespace.language is not None or isinstance(namespace.value, str):
-                        warn(
-                            Warning(
-                                "sh:namespace value must be an RDF Literal with type xsd:anyURI.\nLiteral: \"{}\" type={}".format(
-                                    namespace.value, namespace.datatype or namespace.language
-                                )
-                            )
-                        )
+                    elif (
+                        namespace.datatype == XSD.string
+                        or namespace.language is not None
+                        or isinstance(namespace.value, str)
+                    ):
+                        # Its now possible for namespace to be xsd:string or string literal
+                        pass
                     else:
                         raise ConstraintLoadError(
                             "sh:namespace value must be an RDF Literal with type xsd:anyURI.\nLiteral: {} type={}".format(
@@ -229,7 +230,7 @@ class SPARQLQueryHelper(object):
                 seq1_string = self._shacl_path_to_sparql_path(s, recursion=recursion + 1)
                 all_collected.append(seq1_string)
             if len(all_collected) < 2:
-                raise ReportableRuntimeError("List of SHACL sequence paths " "must have alt least two path items.")
+                raise ReportableRuntimeError("List of SHACL sequence paths must have alt least two path items.")
             return "/".join(all_collected)
 
         find_inverse = set(sg.objects(path_val, SH_inversePath))
@@ -246,7 +247,7 @@ class SPARQLQueryHelper(object):
                 alt1_string = self._shacl_path_to_sparql_path(a, recursion=recursion + 1)
                 all_collected.append(alt1_string)
             if len(all_collected) < 2:
-                raise ReportableRuntimeError("List of SHACL alternate paths " "must have alt least two path items.")
+                raise ReportableRuntimeError("List of SHACL alternate paths must have alt least two path items.")
             return "|".join(all_collected)
 
         find_zero_or_more = set(sg.objects(path_val, SH_zeroOrMorePath))
